@@ -38,6 +38,8 @@ pex = "hatch_pex.hooks"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/hatch_pex/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
