@@ -2,10 +2,10 @@
 name = "hatch-pex"
 description = "Hatch plugin for building PEX binaries."
 dependencies = ["hatchling", "pex"]
+dynamic = ["version"]
 authors = [
     { name = "Kieran Geary", email = "kieran.r.geary@gmail.com" },
 ]
-version = "0.1.0"
 license = { file = "LICENSE" }
 readme = "README.md"
 classifiers = [
