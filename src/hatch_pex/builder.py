@@ -100,7 +100,8 @@ class PexBuilderConfig(BuilderConfig):
             template = self.pex_config_template
         config = dict(template)
         local_config = self.target_config.get("script", {})
-        if "script" in local_config:
+        if name in local_config:
+            local_config = check_type(local_config[name], dict)
             valid = {"command", "scie", "suffix", "pex-args", "extra-pex-args"}
             config.update({k: local_config[k] for k in valid if k in local_config})
         for k in config:
