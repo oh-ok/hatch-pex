@@ -8,199 +8,158 @@ from typing import Any, Callable, Optional
 from hatchling.builders.config import BuilderConfig
 from hatchling.builders.plugin.interface import BuilderInterface
 
+from .util import check_type, check_list_type
+
+
+class PExecutable:
+    def __init__(
+        self,
+        command: Optional[list[str]] = None,
+        scie: Optional[bool | str] = None,
+        pex_args: Optional[list[str]] = None,
+        extra_pex_args: Optional[list[str]] = None,
+        suffix: str | bool = ".pex",
+    ):
+        if scie is True:
+            scie = "eager"
+        elif scie is False:
+            scie = None
+
+        if suffix is None or True:
+            suffix = ".pex"
+        elif suffix is False:
+            suffix = ""
+
+        if pex_args is None:
+            pex_args = []
+
+        if extra_pex_args is None:
+            extra_pex_args = []
+
+        self.command = command
+        self.scie = scie
+        self.pex_args = pex_args
+        self.suffix = suffix
+
+    @classmethod
+    def from_config(cls, config: dict) -> PExecutable:
+        command = config.get("command")
+        if command is None:
+            command = []
+        return cls(
+            command=command,
+            scie=config.get("scie"),
+            pex_args=config.get("pex-args"),
+            extra_pex_args=config.get("extra-pex-args"),
+            suffix=config.get("suffix", ".pex"),
+        )
+
+    def as_arguments(self, prepend=[]) -> list[str]:
+        args = prepend + self.command
+        if self.scie is not None:
+            args += ["--scie", self.scie]
+        return args
+
 
 class PexBuilderConfig(BuilderConfig):
     CFG_PATH = "tool.hatch.target.pex"
 
-    def parse_config(self) -> list[str]:
-        args = []
-        fn = args.extend
-        fn(self.parse_str("preamble-file"))
-        fn(self.parse_list("sources-directory"))
-        fn(self.parse_list("package"))
-        fn(self.parse_list("module"))
-        fn(self.parse_list("project"))
-        fn(self.parse_list("dependency-group"))
-        fn(self.parse_list("requirement"))
-        fn(self.parse_list("constraints"))
-        fn(self.parse_list("exclude"))
-        fn(self.parse_list("override"))
-        fn(self.parse_list("requirements-pex"))
-        fn(self.parse_choices("seed", {"none", "args", "verbose"}, True))
-        fn(self.parse_str("resolver-version"))
-        fn(self.parse_str("pip-version"))
-        fn(self.parse_bool("allow-pip-version-fallback"))
-        fn(self.parse_list("allow-pip-requirement"))
-        fn(self.parse_bool("use-pip-config"))
-        fn(self.parse_str("keyring-provider"))
-        fn(self.parse_bool("pypi"))
-        fn(self.parse_str("find-links"))
-        fn(self.parse_str("index-url"))
-        fn(self.parse_int("retries"))
-        fn(self.parse_int("timeout"))
-        fn(self.parse_str("proxy"))
-        fn(self.parse_str("cert"))
-        fn(self.parse_str("client-cert"))
-        fn(self.parse_str("pex-repository"))
-        fn(self.parse_str("lock"))
-        fn(self.parse_list("path-mapping"))
-        fn(self.parse_list("pre-resolved-dist"))
-        fn(self.parse_bool("pre"))
-        fn(self.parse_bool("wheel"))
-        fn(self.parse_bool("build"))
-        fn(self.parse_list("only-build"))
-        fn(self.parse_bool("prefer-wheel"))
-        fn(self.parse_bool("prefer-binary"))
-        fn(self.parse_bool("use-pep517"))
-        fn(self.parse_bool("build-isolation"))
-        fn(self.parse_bool("transitive"))
-        fn(self.parse_int("jobs"))
-        fn(self.parse_optional_str("pip-log"))
-        fn(self.parse_str("pex-path"))
-        fn(self.parse_flag("include-tools"))
-        fn(self.parse_choices("layout", {"zipapp", "packed", "loose"}))
-        fn(self.parse_bool("pre-install-wheels"))
-        fn(self.parse_int("max-install-jobs"))
-        fn(self.parse_choices("check", {"none", "warn", "error"}))
-        fn(self.parse_bool("compress"))
-        fn(self.parse_choices("venv", {"prepend", "append"}, True))
-        fn(self.parse_bool("venv-copies"))
-        fn(self.parse_bool("venv-site-packages-copies"))
-        fn(self.parse_bool("venv-system-site-packages"))
-        fn(self.parse_flag("non-hermetic-venv-scripts"))
-        fn(self.parse_choices("scie", {"lazy", "eager"}))
-        fn(self.parse_bool("scie-only"))
-        _choices = {"dynamic", "platform-parent-dir", "platform-file-suffix"}
-        fn(self.parse_choices("scie-name-style", _choices))
-        fn(self.parse_list("scie-busybox"))
-        fn(self.parse_bool("scie-busybox-pex-entrypoint-env-passthrough"))
-        fn(self.parse_list("scie-platform"))
-        fn(self.parse_str("scie-pbs-release"))
-        fn(self.parse_str("scie-pypy-release"))
-        fn(self.parse_str("python-version"))
-        fn(self.parse_bool("scie-pbs-stripped"))
-        fn(self.parse_list("scie-hash-alg"))
-        fn(self.parse_str("scie-science-binary"))
-        fn(self.parse_flag("ignore-errors"))
-        fn(self.parse_choices("inherit-path", {"false", "prefer", "fallback"}))
-        fn(self.parse_str("runtime-pex-root"))
-        fn(self.parse_bool("strip-pex-env"))
-        fn(self.parse_list("python"))
-        fn(self.parse_str("python-path"))
-        fn(self.parse_list("interpreter-constraint"))
-        fn(self.parse_list("platform"))
-        fn(self.parse_list("complete-platform"))
-        fn(self.parse_optional_str("manylinux"))
-        fn(self.parse_flag("resolve-local-platforms"))
-        fn(self.parse_str("python-shebang"))
-        fn(self.parse_bool("sh-boot"))
-        fn(self.parse_flag("validate-entry-point"))
-        fn(self.parse_list("inject-env"))
-        fn(self.parse_list("inject-python-args"))
-        fn(self.parse_list("inject-args"))
-        if "extra-pex-args" in self.target_config:
-            extra_args = self.target_config["extra-pex-args"]
-            if not isinstance(extra_args, list):
-                raise TypeError("%r: should be a list of strings.")
-            if not all(isinstance(i, str) for i in extra_args):
-                raise TypeError("%r: should be a list of strings.")
-            return args + extra_args
-        return args
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__scripts = None
+        self.__pex_template = None
+        self.__interactive = None
 
-    def validate_type(self, name, kls) -> Optional[Any]:
-        if name not in self.target_config:
-            return None
-        value = self.target_config[name]
-        if not isinstance(value, kls):
-            path = "%s.%s" % (self.CFG_PATH, name)
-            m = "%r: expected %r, got %r" % (path, kls, value)
-            raise TypeError(m)
-        return value
+    @property
+    def pex_config_template(self):
+        if self.__pex_template is not None:
+            return self.__pex_template
+        config = self.target_config.copy()
+        valid = {"command", "scie", "suffix", "pex-args"}
+        template = {k: config[k] for k in valid if k in config}
+        if "command" not in template:
+            template["command"] = ["--script", "{script}"]
 
-    def parse_flag(self, name: str, default=None) -> list[str]:
-        value = self.validate_type(name, bool)
-        if value is None:
-            return []
-        if not value:
-            if default is None:
-                default = []
-            return default
-        return ["--%s" % name]
+        # type check all this..
+        check_list_type(template["command"], str)
+        if "scie" in template:
+            check_type(template["scie"], (bool, str))
+        elif "suffix" in template:
+            check_type(template["suffix"], str)
+        elif "pex-args" in template:
+            check_list_type(template["pex-args"], str)
 
-    def parse_bool(self, name: str) -> list[str]:
-        return self.parse_flag(name, ["--no-%s" % name])
+        self.__pex_template = template
+        return template
 
-    def parse_optional_str(self, name: str) -> list[str]:
-        if name not in self.target_config:
-            return []
-        value = self.target_config[name]
-        if value is False:
-            return []
-        if value is True:
-            return ["--%s" % name]
-        if not isinstance(value, str):
-            path = "%s.%s" % (self.CFG_PATH, name)
-            m = "%r: expected, true, false or a string. Got %r." % (path, value)
-            raise TypeError(m)
-        return ["--%s" % name, value]
+    @property
+    def pexes(self) -> dict[str, PExecutable]:
+        if self.__scripts is not None:
+            return self.__scripts
 
-    def parse_str(self, name: str, optional=False) -> list[str]:
-        value = self.validate_type(name, str)
-        if value is None:
-            return []
-        return ["--%s" % name, value]
+        # return if theres no scripts
+        known = set(self.builder.metadata.core.scripts)
+        known.update(check_type(self.target_config.get("script", {}), dict))
+        scripts = self.target_config.get("scripts")
+        if scripts is None or scripts is True:
+            scripts = list(known)
 
-    def parse_int(self, name: str) -> list[str]:
-        value = self.validate_type(name, int)
-        if value is None:
-            return []
-        return ["--%s" % name, str(value)]
+        check_list_type(scripts, str)
+        # return an interactive pex if there are no scripts.
+        if not scripts:
+            pexes = {self.builder.metadata.core.name: self.interactive}
+            self.__scripts = pexes
+            return pexes
 
-    def parse_list(self, name: str) -> list[str]:
-        value = self.validate_type(name, list)
-        if value is None:
-            return []
-        args = []
-        for i, v in enumerate(value):
-            if not isinstance(v, str):
-                path = "%s.%s" % (self.CFG_PATH, name)
-                m = "%r expected list of strings, got %r at index %r" % (path, v, i)
-                raise TypeError(m)
-            args.append("--%s" % name)
-            args.append(v)
-        return args
+        # check that any script names are valid.
+        for script in scripts:
+            check_type(script, str)
+            if script not in known:
+                raise ValueError("Unknown script: {!r}".format(script))
 
-    def parse_choices(
-        self, name: str, choices: set[str], choice_optional=False
-    ) -> list[str]:
-        if name not in self.target_config:
-            return []
-        value = self.target_config[name]
-        if choice_optional and value is True:
-            return ["--%s" % name]
-        if choice_optional and value is False:
-            return []
-        if value not in choices:
-            path = "%s.%s" % (self.CFG_PATH, name)
-            m = "%r must be one of %r, got %r" % (path, choices, value)
-            raise ValueError(m)
-        return ["--%s" % name, value]
+        pexes = {k: PExecutable.from_config(self.pex_config(k)) for k in scripts}
 
-    def scripts(self) -> list[str]:
-        known = self.builder.metadata.core.scripts
-        if "scripts" not in self.target_config:
-            return list(known)
-        desired = self.target_config.pop("scripts")
-        message = "'scripts' must be a list of strings."
-        if not isinstance(desired, list):
-            raise TypeError(message)
-        for item in desired:
-            if not item:
-                continue
-            if item not in known:
-                message = "unknown script %r" % item
-                raise ValueError(message)
-        return desired
+        # add an interactive pex if the config specifies one.
+        if "interactive" in self.target_config:
+            i_config = check_type(self.target_config["interactive"], dict)
+            if i_config.get("name"):
+                name = check_type(i_config["name"], str)
+            else:
+                name = self.builder.metadata.core.name
+            pexes[name] = self.interactive
+
+        self.__scripts = pexes
+        return pexes
+
+    @property
+    def interactive(self) -> Optional[PExecutable]:
+        if self.__interactive is not None:
+            return self.__interactive
+
+        config = self.pex_config_template.copy()
+        config["command"] = []
+        config.update(check_type(self.target_config.get("interactive", {}), dict))
+        if config["command"]:
+            raise ValueError("Command must be empty for an interactive PEX.")
+        pex = PExecutable.from_config(config)
+        self.__iteractive = pex
+        return pex
+
+    def pex_config(self, name, template=None):
+        if template is None:
+            template = self.pex_config_template
+        config = dict(template)
+        local_config = self.target_config.get("script", {})
+        if "script" in local_config:
+            valid = {"command", "scie", "suffix", "pex-args", "extra-pex-args"}
+            config.update({k: local_config[k] for k in valid if k in local_config})
+        for k in config:
+            value = config[k]
+            if isinstance(value, str):
+                config[k] = value.format(script=name)
+            elif isinstance(value, list):
+                config[k] = [v.format(script=name) for v in value]
+        return config
 
 
 class PexBuilder(BuilderInterface):
@@ -218,30 +177,21 @@ class PexBuilder(BuilderInterface):
         return {"pexfile": self.build_pexfile}
 
     def build_pexfile(self, directory: str, **build_data: Any) -> str:
+        config: PexBuilderConfig = self.config
+
         subdir = os.path.join(directory, self.PLUGIN_NAME)
         if not os.path.exists(subdir):
             os.mkdir(subdir)
 
-        entry_points = self.metadata.core.scripts
-        scripts = self.config.scripts()
-        args = self.config.parse_config() + ["--project", self.root]
+        pexes = config.pexes
+        args = ["--project", self.root]
 
-        jobs = []
-        for script in scripts:
-            if not script:
-                script = self.metadata.name + "--interactive"
-                entry_point = []
-            else:
-                entry_point = ["--entry-point", entry_points[script]]
-            file = os.path.join(subdir, script + ".pex")
+        for exe, spec in pexes.items():
+            file = os.path.join(subdir, exe + spec.suffix)
             output = ["--output-file", file]
-            job = args + entry_point + output
-            jobs.append(job)
-
-        for args in jobs:
-            self.build_single_pexfile(args)
+            self.build_executable(spec.as_arguments(prepend=args + output))
 
         return subdir
 
-    def build_single_pexfile(self, args: list[str], *a, **k) -> None:
+    def build_executable(self, args: list[str], *a, **k) -> None:
         subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)

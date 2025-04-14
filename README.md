@@ -50,7 +50,7 @@ When you run `hatch build -t pex`, the builder will effectively run the followin
 $ pex \
     --project "${PROJECT}" \
     --output-file "${SCRIPT_NAME}.pex" \
-    --entry-point "${SCRIPT_ENTRY_POINT}"
+    --script "${SCRIPT_NAME}"
     # ... other config args here ...
 ```
 
@@ -62,95 +62,30 @@ If you have an empty `project.scripts`, or you set `tool.hatch.build.targets.pex
 
 ```toml
 [tool.hatch.build.targets.pex]
-project = [] # NOTE: the current project is always added
-scripts = [] # NOTE: use this to limit the entry points that get built
-preamble-file = "path"
-sources-directory = []
-package = []
-module = []
-dependency-group = []
-requirement = []
-constraints = []
-exclude = []
-override = []
-requirements-pex = []
-seed = true | "none" | "args" | "verbose"
-resolver-version = "pip-legacy-resolver" | "pip-2020-resolver"
-pip-version = "version"
-allow-pip-version-fallback = true | false
-allow-pip-requirement = []
-use-pip-config = true | false
-keyring-provider = "provider"
-pypi = true | false
-find-links = "url or path"
-index-url = "url or path"
-retries = 0
-timeout = 0
-proxy = "url"
-cert = "path"
-client-cert = "path"
-pex-repository = "path"
-lock = "path"
-path-mapping = []
-pre-resolved-dist = []
-pre = true | false
-wheel = true | false
-build = true | false
-only-build = []
-prefer-wheel = true | false
-prefer-binary = true | false
-use-pep517 = true | false
-build-isolation = true | false
-transitive = true | false
-jobs = 0
-pip-log = true | "path"
-pex-path = "PEXPATH"
-include-tools = true | false
-layout = "zipapp" | "packed" | "loose"
-pre-install-wheels = true | false
-max-install-jobs = 0
-check = "none" | "warn" | "error"
-compress = true | false
-venv = true | "prepend" | "append"
-venv-copies = true | false
-venv-site-packages-copies = true | false
-venv-system-site-packages = true | false
-non-hermetic-venv-scripts = true | false
-scie = "lazy" | "eager"
-scie-only = true | false
-scie-name-style = "dynamic" | "platform-parent-dir" | "platform-file-suffix"
-scie-busybox = []
-scie-busybox-pex-entrypoint-env-passthrough = true | false
-scie-platform = []
-scie-pbs-release = "id"
-scie-pypy-release = "id"
-python-version = "ver"
-scie-pbs-stripped = true | false
-scie-hash-alg = []
-scie-science-binary = "path or url"
-ignore-errors = true | false
-inherit-path = "false" | "prefer" | "fallback"
-runtime-pex-root = "path"
-strip-pex-env = true | false
-python = []
-python-path = "PYTHONPATH"
-interpreter-constraint = []
-platform = []
-complete-platform = []
-manylinux = true | ""
-resolve-local-platforms = true | false
-python-shebang = ""
-sh-boot = true | false
-validate-entry-point = true | false
-inject-env = []
-inject-python-args = []
-inject-args = []
+scripts = [] # Limit the scripts that get made into PEXes
+pex-args = ["--venv", "prepend"] # Set default arguments to pass to `pex`
+scie = false # Set to "eager" or "lazy" to build a scie PEX.
+suffix = ".pex" # The suffix of the output file.
 
-# any extra arguments that are not accounted
-# for here can be passed here
+# NOTE: If the suffix is '.pex', and scie is true
+# then both a 'scie' and a '.pex' file will be created.
+
+# You can override your defaults for each PEX,
+# add extra arguments, or add additional PEXes by defining tables...
+[tool.hatch.build.targets.pex.script.'somescript']
+pex-args = []
+extra-pex-args = [] 
+scie = false
+suffix = ""
+command = ["-exe", "{script}.py"]
+# "{script}" gets replaced with the above name
+
+# If there are no scripts, an interactive PEX is built with the
+# project name as the executable name.
+# You can also manually configure one.
+[tool.hatch.build.targets.pex.interactive]
+name = "somename" # the project.name by default
+pex-args = []
 extra-pex-args = []
-```
-
-## License
-
-`hatch-pex` is distributed under the terms of the [MIT](/LICENSE) license.
+suffix = ".pex"
+scie = false

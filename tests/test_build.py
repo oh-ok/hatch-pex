@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import zipfile
 from pathlib import Path
@@ -57,3 +58,36 @@ scie = 'eager'
         proc = run([binary], stdout=PIPE, universal_newlines=True)
         assert proc.returncode == 0
         assert proc.stdout == proc_stdout
+
+
+def test_interactive_pex(new_project: Path) -> None:
+    """
+    builds and tests an interactive pex
+    """
+
+    dist = new_project / "dist" / "pex"
+
+    pyproject = new_project / "pyproject.toml"
+    assert pyproject.is_file()
+
+    # remove the scripts
+    with pyproject.open("r+") as f:
+        content = f.read()
+        content = re.sub(r"\[project.scripts\][^\[]*", "", content)
+        f.seek(0, 0)
+        f.truncate(0)
+        f.write(content)
+
+    proc = run([sys.executable, "-m", "hatch", "build", "-t", "pex"])
+    proc.check_returncode()
+
+    assert dist.is_dir()
+    artifacts = list(dist.iterdir())
+    artifacts.sort()
+    assert len(artifacts) == 1
+    assert artifacts[0].suffix == ".pex"
+    assert zipfile.is_zipfile(artifacts[0])
+
+    proc = run(artifacts + ["-V"], stdout=PIPE, universal_newlines=True)
+    proc.check_returncode()
+    assert "Python" in proc.stdout
