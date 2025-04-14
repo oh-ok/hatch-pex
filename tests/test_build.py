@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import re
-import os
 import sys
-import time
-import random
 import zipfile
 from pathlib import Path
 from subprocess import run, PIPE
@@ -55,8 +52,11 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     assert dist.is_dir()
     artifacts = list(dist.iterdir())
     artifacts.sort()
+
+    expected_suffix = ".exe" if sys.platform in {"win32", "cygwin"} else ""
+ 
     assert len(artifacts) == 2
-    assert not artifacts[0].suffix
+    assert artifacts[0].suffix == expected_suffix
     assert artifacts[1].suffix == ".pex"
     assert zipfile.is_zipfile(artifacts[1])
 

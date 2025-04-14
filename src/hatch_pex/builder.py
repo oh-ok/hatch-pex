@@ -8,57 +8,7 @@ from typing import Any, Callable, Optional
 from hatchling.builders.config import BuilderConfig
 from hatchling.builders.plugin.interface import BuilderInterface
 
-from .util import check_type, check_list_type
-
-
-class PExecutable:
-    def __init__(
-        self,
-        command: Optional[list[str]] = None,
-        scie: Optional[bool | str] = None,
-        pex_args: Optional[list[str]] = None,
-        extra_pex_args: Optional[list[str]] = None,
-        suffix: str | bool = ".pex",
-    ):
-        if scie is True:
-            scie = "eager"
-        elif scie is False:
-            scie = None
-
-        if suffix is None or True:
-            suffix = ".pex"
-        elif suffix is False:
-            suffix = ""
-
-        if pex_args is None:
-            pex_args = []
-
-        if extra_pex_args is None:
-            extra_pex_args = []
-
-        self.command = command
-        self.scie = scie
-        self.pex_args = pex_args
-        self.suffix = suffix
-
-    @classmethod
-    def from_config(cls, config: dict) -> PExecutable:
-        command = config.get("command")
-        if command is None:
-            command = []
-        return cls(
-            command=command,
-            scie=config.get("scie"),
-            pex_args=config.get("pex-args"),
-            extra_pex_args=config.get("extra-pex-args"),
-            suffix=config.get("suffix", ".pex"),
-        )
-
-    def as_arguments(self, prepend=[]) -> list[str]:
-        args = prepend + self.command
-        if self.scie is not None:
-            args += ["--scie", self.scie]
-        return args
+from .util import PExecutable, check_type, check_list_type
 
 
 class PexBuilderConfig(BuilderConfig):
@@ -194,4 +144,4 @@ class PexBuilder(BuilderInterface):
         return subdir
 
     def build_executable(self, args: list[str], *a, **k) -> None:
-        subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)
+        return subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)
