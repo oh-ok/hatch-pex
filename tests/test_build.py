@@ -9,6 +9,9 @@ import zipfile
 from pathlib import Path
 from subprocess import run, PIPE
 
+import httpx
+import pytest
+
 
 def test_pex_build(new_project: Path, proc_stdout: str) -> None:
     """
@@ -31,6 +34,7 @@ def test_pex_build(new_project: Path, proc_stdout: str) -> None:
     assert proc.stdout == proc_stdout
 
 
+@pytest.mark.xfail(raises=httpx.HTTPStatusError)
 def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     """
     builds and tests a scie of a pex executable
@@ -43,13 +47,8 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     assert pyproject.is_file()
 
     with pyproject.open("a") as f:
-        f.write("""
-scie = 'eager'
-""")
+        f.write("scie = 'eager'\n")
 
-    # GitHub actions rate-limit workaround
-    if os.getenv("GITHUB_ACTIONS"):
-        time.sleep(random.randint(0, 10))
     proc = run([sys.executable, "-m", "hatch", "build", "-t", "pex"])
     proc.check_returncode()
 
@@ -61,10 +60,13 @@ scie = 'eager'
     assert artifacts[1].suffix == ".pex"
     assert zipfile.is_zipfile(artifacts[1])
 
-    for binary in artifacts:
-        proc = run([sys.executable, binary], stdout=PIPE, universal_newlines=True)
-        assert proc.returncode == 0
-        assert proc.stdout == proc_stdout
+    proc = run([artifacts[0]], stdout=PIPE, universal_newlines=True)
+    assert proc.returncode == 0
+    assert proc.stdout == proc_stdout
+
+    proc = run([sys.executable, artifacts[1]], stdout=PIPE, universal_newlines=True)
+    assert proc.returncode == 0
+    assert proc.stdout == proc_stdout
 
 
 def test_interactive_pex(new_project: Path) -> None:
