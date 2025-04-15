@@ -6,8 +6,8 @@ import zipfile
 from pathlib import Path
 from subprocess import run, PIPE
 
-import httpx
-import pytest
+# import httpx
+# import pytest
 
 
 def test_pex_build(new_project: Path, proc_stdout: str) -> None:
@@ -31,7 +31,6 @@ def test_pex_build(new_project: Path, proc_stdout: str) -> None:
     assert proc.stdout == proc_stdout
 
 
-@pytest.mark.xfail(raises=httpx.HTTPStatusError)
 def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     """
     builds and tests a scie of a pex executable
@@ -44,7 +43,7 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     assert pyproject.is_file()
 
     with pyproject.open("a") as f:
-        f.write("scie = 'eager'\n")
+        f.write("scie = 'eager'\nsuffix=false\n")
 
     proc = run([sys.executable, "-m", "hatch", "build", "-t", "pex"])
     proc.check_returncode()
@@ -55,16 +54,11 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
 
     expected_suffix = ".exe" if sys.platform in {"win32", "cygwin"} else ""
  
-    assert len(artifacts) == 2
-    assert artifacts[0].suffix == expected_suffix
-    assert artifacts[1].suffix == ".pex"
-    assert zipfile.is_zipfile(artifacts[1])
+    assert len(artifacts) == 1
+    binary = artifacts[0]
+    assert binary.suffix == expected_suffix
 
-    proc = run([artifacts[0]], stdout=PIPE, universal_newlines=True)
-    assert proc.returncode == 0
-    assert proc.stdout == proc_stdout
-
-    proc = run([sys.executable, artifacts[1]], stdout=PIPE, universal_newlines=True)
+    proc = run([binary], stdout=PIPE, universal_newlines=True)
     assert proc.returncode == 0
     assert proc.stdout == proc_stdout
 
