@@ -16,7 +16,7 @@ class PExecutable:
         elif scie is False:
             scie = None
 
-        if suffix is None or True:
+        if suffix in {None, True}:
             suffix = ".pex"
         elif suffix is False:
             suffix = ""
