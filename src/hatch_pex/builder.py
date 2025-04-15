@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import shutil
 import subprocess
 from typing import Any, Callable, Optional
 
@@ -124,6 +125,11 @@ class PexBuilder(BuilderInterface):
     def get_default_versions(cls):
         return ["pexfile"]
 
+    def clean(self, directory: str, versions: list[str]):
+        directory = os.path.join(directory, self.PLUGIN_NAME)
+        if os.path.isdir(directory):
+            shutil.rmtree(directory)
+
     def get_version_api(self) -> dict[str, Callable]:
         return {"pexfile": self.build_pexfile}
 
@@ -137,12 +143,30 @@ class PexBuilder(BuilderInterface):
         pexes = config.pexes
         args = ["--project", self.root]
 
+        results = []
         for exe, spec in pexes.items():
             file = os.path.join(subdir, exe + spec.suffix)
-            output = ["--output-file", file]
-            self.build_executable(spec.as_arguments(prepend=args + output))
+            files = self.build_executable(file, args + spec.as_arguments())
+            results += files
+        return "\n".join(results)
 
-        return subdir
+    def build_executable(self, filename: str, args: list[str], *a, **k) -> None:
+        if self.app.verbosity < 1:
+            k.update(
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+        else:
+            args += ["-v"] * int(self.app.verbosity)
+        results = [filename]
+        if filename.endswith(".pex") and "--scie" in args:
+            results += [filename[:-4]]
 
-    def build_executable(self, args: list[str], *a, **k) -> None:
-        return subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)
+        args += ["--output-file", filename]
+        k.setdefault("check", True)
+        subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)
+        for binary in results:
+            if not os.path.isfile(binary):
+                raise OSError("Could not create a PEX file at {!r}".format(binary))
+
+        return results
