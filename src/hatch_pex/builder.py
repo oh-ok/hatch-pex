@@ -116,6 +116,7 @@ class PexBuilderConfig(BuilderConfig):
 
 class PexBuilder(BuilderInterface):
     PLUGIN_NAME = "pex"
+    EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 
     @classmethod
     def get_config_class(cls) -> type[BuilderConfig]:
@@ -160,7 +161,7 @@ class PexBuilder(BuilderInterface):
             args += ["-v"] * int(self.app.verbosity)
         results = [filename]
         if filename.endswith(".pex") and "--scie" in args:
-            results += [filename[:-4]]
+            results += [filename[:-4] + self.EXE_SUFFIX]
 
         args += ["--output-file", filename]
         k.setdefault("check", True)
