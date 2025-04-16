@@ -42,8 +42,10 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     pyproject = new_project / "pyproject.toml"
     assert pyproject.is_file()
 
+    expected_suffix = ".exe" if sys.platform in {"win32", "cygwin"} else ""
+
     with pyproject.open("a") as f:
-        f.write("scie = 'eager'\nsuffix=false\n")
+        f.write("scie = 'eager'\nsuffix={!r}\n".format(expected_suffix))
 
     proc = run([sys.executable, "-m", "hatch", "build", "-t", "pex"])
     proc.check_returncode()
@@ -51,8 +53,6 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     assert dist.is_dir()
     artifacts = list(dist.iterdir())
     artifacts.sort()
-
-    expected_suffix = ".exe" if sys.platform in {"win32", "cygwin"} else ""
  
     assert len(artifacts) == 1
     binary = artifacts[0]
