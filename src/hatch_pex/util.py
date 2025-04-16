@@ -29,7 +29,7 @@ class PExecutable:
 
         self.command = command
         self.scie = scie
-        self.pex_args = pex_args
+        self.pex_args = pex_args + extra_pex_args
         self.suffix = suffix
 
     @classmethod
@@ -45,11 +45,11 @@ class PExecutable:
             suffix=config.get("suffix", ".pex"),
         )
 
-    def as_arguments(self, prepend=[]) -> list[str]:
-        args = prepend + self.command
+    def as_arguments(self) -> list[str]:
+        args = self.command
         if self.scie is not None:
             args += ["--scie", self.scie]
-        return args
+        return args + self.pex_args
 
 
 def check_type(obj, t, fmt=None, **k):

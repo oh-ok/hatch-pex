@@ -45,7 +45,11 @@ def test_scie_build(new_project: Path, proc_stdout: str) -> None:
     expected_suffix = ".exe" if sys.platform in {"win32", "cygwin"} else ""
 
     with pyproject.open("a") as f:
-        f.write("scie = 'eager'\nsuffix={!r}\n".format(expected_suffix))
+        f.write("""
+scie='eager'
+suffix=false
+pex-args=['--scie-only']
+""")
 
     proc = run([sys.executable, "-m", "hatch", "build", "-t", "pex"])
     proc.check_returncode()

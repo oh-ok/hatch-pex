@@ -63,12 +63,12 @@ If you have an empty `project.scripts`, or you set `tool.hatch.build.targets.pex
 ```toml
 [tool.hatch.build.targets.pex]
 scripts = [] # Limit the scripts that get made into PEXes
-pex-args = ["--venv", "prepend"] # Set default arguments to pass to `pex`
+pex-args = ["--venv"] # Set default arguments to pass to `pex`
 scie = false # Set to "eager" or "lazy" to build a scie PEX.
 suffix = ".pex" # The suffix of the output file.
 
-# NOTE: If the suffix is '.pex', and scie is true
-# then both a 'scie' and a '.pex' file will be created.
+# Pass '--scie-only' or '--pex-only' to specify if
+# you want one or the other
 
 # You can override your defaults for each PEX,
 # add extra arguments, or add additional PEXes by defining tables...
@@ -76,8 +76,8 @@ suffix = ".pex" # The suffix of the output file.
 pex-args = []
 extra-pex-args = [] 
 scie = false
-suffix = ""
-command = ["-exe", "{script}.py"]
+suffix = ".pex"
+command = ["--script", "{script}"]
 # "{script}" gets replaced with the above name
 
 # If there are no scripts, an interactive PEX is built with the
@@ -87,5 +87,6 @@ command = ["-exe", "{script}.py"]
 name = "somename" # the project.name by default
 pex-args = []
 extra-pex-args = []
-suffix = ".pex"
 scie = false
+suffix = ".pex"
+# 'command' is not valid here

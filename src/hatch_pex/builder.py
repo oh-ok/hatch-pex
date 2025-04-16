@@ -152,22 +152,26 @@ class PexBuilder(BuilderInterface):
         return "\n".join(results)
 
     def build_executable(self, filename: str, args: list[str], *a, **k) -> None:
-        if self.app.verbosity < 1:
+        if self.app.verbosity < 0:
             k.update(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
             )
         else:
             args += ["-v"] * int(self.app.verbosity)
-        results = [filename]
-        if filename.endswith(".pex") and "--scie" in args:
-            results += [filename[:-4] + self.EXE_SUFFIX]
 
         args += ["--output-file", filename]
         k.setdefault("check", True)
         subprocess.run([sys.executable, "-m", "pex"] + args, *a, **k)
-        for binary in results:
-            if not os.path.isfile(binary):
-                raise OSError("Could not create a PEX file at {!r}".format(binary))
+
+        results = []
+        if os.path.exists(filename):
+            results.append(filename)
+        if self.EXE_SUFFIX and os.path.exists(filename + self.EXE_SUFFIX):
+            results.append(filename + self.EXE_SUFFIX)
+        if filename.endswith(".pex") and os.path.exists(
+            filename[:-4] + self.EXE_SUFFIX
+        ):
+            results.append(filename[:-4] + self.EXE_SUFFIX)
 
         return results
