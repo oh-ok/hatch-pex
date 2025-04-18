@@ -36,9 +36,11 @@ myapp.pex   myapp
 
 ## Comparison to PyApp
 
-Hatch's built-in ['binary' build target](https://hatch.pypa.io/latest/plugins/builder/binary/) will generate a self-extracting binary including a Python interpreter and your code using [PyApp](https://github.com/ofek/pyapp). This is functionally identical to [PEX's `scie` binaries](https://docs.pex-tool.org/scie.html), except that a `scie` PEX does not need to be compiled for every Python project.
+Hatch's built-in ['binary' build target](https://hatch.pypa.io/latest/plugins/builder/binary/) will generate a self-extracting binary including a Python interpreter and your code using [PyApp](https://github.com/ofek/pyapp). For 'standalone' binaries that include all their dependencies, this is functionally identical to [PEX's `scie` binaries](https://docs.pex-tool.org/scie.html), except that a `scie` PEX does not need to be compiled with cargo for every Python project. Both PEX and PyApp can fetch a Python interpreter at runtime, but only PyApp can fetch dependant wheels at runtime.
 
-Instead, the `scie` binary is just a "dumb" pre-built binary that the PEX zipapp gets appended to (with some metadata to tell the binary how to run it). This works because executables can have arbitrary data appended to them, and a zip can have arbitrary data before it's header, and both are still valid.
+Finally, PEX executables can be configured at runtime to manipulate entry-points. PyApp executables have management commands (to purge pip caches, for example), but their entry-point is generally static. This may or may not be desirable for your usecase.
+
+See https://github.com/a-scie/ for more information about how `scie` executables work.
 
 ## Configuration
 
