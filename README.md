@@ -36,7 +36,7 @@ myapp.pex   myapp
 
 ## Comparison to PyApp
 
-Hatch's built-in ['binary' build target](https://hatch.pypa.io/latest/plugins/builder/binary/) will generate a self-extracting binary including a Python interpreter and your code using [PyApp](https://github.com/ofek/pyapp). For 'standalone' binaries that include all their dependencies, this is functionally identical to [PEX's `scie` binaries](https://docs.pex-tool.org/scie.html), except that a `scie` PEX does not need to be compiled with cargo for every Python project. Both PEX and PyApp can fetch a Python interpreter at runtime, but only PyApp can fetch dependant wheels at runtime.
+Hatch's built-in ['binary' build target](https://hatch.pypa.io/latest/plugins/builder/binary/) will generate a self-extracting binary including a Python interpreter and your code using [PyApp](https://github.com/ofek/pyapp). The hatch target assumes that your package will be available on PyPI, but the underlying PyApp builder is capable of embedding a single wheel in the binary. For 'standalone' binaries that include all their dependencies, this is functionally identical to [PEX's `scie` binaries](https://docs.pex-tool.org/scie.html), except that a `scie` PEX does not need to be compiled with cargo for every Python project. Both PEX and PyApp can fetch a Python interpreter at runtime, but only PyApp can fetch dependant wheels at runtime, and self-update from PyPI.
 
 Finally, PEX executables can be configured at runtime to manipulate entry-points. PyApp executables have management commands (to purge pip caches, for example), but their entry-point is generally static. This may or may not be desirable for your usecase.
 
